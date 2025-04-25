@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, Alert, Keyboard } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, Alert, Keyboard, Image } from 'react-native';
+
+// Importe suas imagens com os nomes corretos
+const characterExpressions = {
+  thinking: require('./assets/characters/thinking.png'),
+  happy: require('./assets/characters/happy.png'),
+  sad: require('./assets/characters/sad.png'),
+  surprised: require('./assets/characters/surprised.png'),
+  neutral: require('./assets/characters/neutral.png'),
+};
 
 const App = () => {
   const [min, setMin] = useState('');
@@ -9,6 +18,7 @@ const App = () => {
   const [randomNumber, setRandomNumber] = useState(null);
   const [feedback, setFeedback] = useState('Tente adivinhar o número que estou pensando!');
   const [attempts, setAttempts] = useState(0);
+  const [character, setCharacter] = useState(characterExpressions.neutral);
 
   const generateRandomNumber = () => {
     if (!min || !max) {
@@ -29,7 +39,20 @@ const App = () => {
     setScreen('game');
     setFeedback(`Estou pensando em um número entre ${minNum} e ${maxNum}. Qual é seu palpite?`);
     setAttempts(0);
+    setCharacter(characterExpressions.thinking);
     Keyboard.dismiss();
+  };
+
+  const updateCharacter = (difference, range, isHigher) => {
+    const proximity = difference / range;
+   
+    if (proximity < 0.1) { // Muito perto
+      setCharacter(characterExpressions.surprised);
+    } else if (proximity < 0.3) { // Perto
+      setCharacter(characterExpressions.neutral);
+    } else { // Longe
+      setCharacter(characterExpressions.sad);
+    }
   };
 
   const checkGuess = () => {
@@ -51,27 +74,32 @@ const App = () => {
     Keyboard.dismiss();
 
     if (guessNum === randomNumber) {
+      setCharacter(characterExpressions.happy);
       setFeedback(`Parabéns! Você acertou em ${attempts + 1} tentativa(s)! O número era ${randomNumber}.`);
       setTimeout(() => {
         setScreen('home');
         setGuess('');
         setMin('');
         setMax('');
+        setCharacter(characterExpressions.neutral);
       }, 3000);
       return;
     }
 
     const difference = Math.abs(randomNumber - guessNum);
     const range = maxNum - minNum;
-    const isClose = difference <= range * 0.1; // 10% do range é considerado "perto"
+    const isHigher = guessNum < randomNumber;
+    const isClose = difference <= range * 0.1;
 
-    if (guessNum < randomNumber) {
+    updateCharacter(difference, range, isHigher);
+
+    if (isHigher) {
       setFeedback(
-        `Seu palpite está baixo. ${isClose ? 'Está perto! Tente um pouco mais alto.' : 'Tente um número bem mais alto.'}`
+        `Seu palpite está baixo. ${isClose ? 'Está perto! Tente um pouco mais alto.' : 'Tente um número mais alto.'}`
       );
     } else {
       setFeedback(
-        `Seu palpite está alto. ${isClose ? 'Está perto! Tente um pouco mais baixo.' : 'Tente um número bem mais baixo.'}`
+        `Seu palpite está alto. ${isClose ? 'Está perto! Tente um pouco mais baixo.' : 'Tente um número mais baixo.'}`
       );
     }
 
@@ -82,6 +110,7 @@ const App = () => {
     setScreen('home');
     setGuess('');
     setFeedback('Tente adivinhar o número que estou pensando!');
+    setCharacter(characterExpressions.neutral);
   };
 
   return (
@@ -89,6 +118,11 @@ const App = () => {
       {screen === 'home' ? (
         <View style={styles.homeContainer}>
           <Text style={styles.title}>Adivinhe o Número</Text>
+          <Image 
+            source={character} 
+            style={styles.characterImage}
+            onError={(e) => console.log('Erro ao carregar imagem:', e.nativeEvent.error)}
+          />
           <Text style={styles.subtitle}>Escolha o intervalo de números</Text>
 
           <View style={styles.inputContainer}>
@@ -123,6 +157,11 @@ const App = () => {
             <Text style={styles.homeButtonText}>🏠 Home</Text>
           </TouchableOpacity>
 
+          <Image 
+            source={character} 
+            style={styles.characterImage}
+            onError={(e) => console.log('Erro ao carregar imagem:', e.nativeEvent.error)}
+          />
           <Text style={styles.feedback}>{feedback}</Text>
 
           <TextInput
@@ -168,6 +207,12 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 10,
   },
+  characterImage: {
+    width: 200,
+    height: 200,
+    marginVertical: 20,
+    resizeMode: 'contain',
+  },
   subtitle: {
     fontSize: 18,
     color: '#666',
@@ -195,7 +240,7 @@ const styles = StyleSheet.create({
   button: {
     width: '100%',
     height: 50,
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#593122',
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
@@ -212,7 +257,7 @@ const styles = StyleSheet.create({
   },
   homeButtonText: {
     fontSize: 16,
-    color: '#4CAF50',
+    color: '#593122',
     fontWeight: 'bold',
   },
   feedback: {
@@ -236,7 +281,7 @@ const styles = StyleSheet.create({
   guessButton: {
     width: '100%',
     height: 50,
-    backgroundColor: '#2196F3',
+    backgroundColor: '#593122',
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
